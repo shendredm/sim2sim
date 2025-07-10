@@ -100,6 +100,8 @@ def run_mujoco(policy, cfg):
     mujoco.mj_step(model, data)
     viewer = mujoco_viewer.MujocoViewer(model, data)
 
+    obs_idx = [0,3,6,9,1,4,7,10,2,5,8,11]
+    action_idx = [0,4,8,1,5,9,2,6,10,3,7,11]
     target_q = np.zeros((cfg.env.num_actions), dtype=np.double)
     action = np.zeros((cfg.env.num_actions), dtype=np.double)
 
@@ -146,9 +148,9 @@ def run_mujoco(policy, cfg):
             obs[0, 9] = cmd.vx * cfg.normalization.obs_scales.lin_vel   
             obs[0, 10] = cmd.vy * cfg.normalization.obs_scales.lin_vel
             obs[0, 11] = cmd.dyaw * cfg.normalization.obs_scales.ang_vel
-            obs[0, 12:24] = q - default_pos * cfg.normalization.obs_scales.dof_pos
-            obs[0, 24:36] = dq * cfg.normalization.obs_scales.dof_vel
-            obs[0, 36:48] = action
+            obs[0, 12:24] = q[obs_idx] - default_pos[obs_idx] * cfg.normalization.obs_scales.dof_pos
+            obs[0, 24:36] = dq[obs_idx] * cfg.normalization.obs_scales.dof_vel
+            obs[0, 36:48] = action[obs_idx]
 
             #(obs, -cfg.normalization.clip_observations, cfg.normalization.clip_observations)
             obs = torch.tensor(obs, dtype=torch.float32)
@@ -157,7 +159,7 @@ def run_mujoco(policy, cfg):
             action[:] = policy(torch.tensor(hist_obs))[0].detach().numpy()
             #action = np.clip(action, -cfg.normalization.clip_actions, cfg.normalization.clip_actions)
 
-            target_q = action * cfg.control.action_scale + default_pos
+            target_q = action[action_idx] * cfg.control.action_scale + default_pos
 
 
         target_dq = np.zeros((cfg.env.num_actions), dtype=np.double)
